@@ -1,26 +1,23 @@
+from pprint import pprint
 import random
 
 
 class Graph:
     def __init__(self):
-        # Initialize the adjacency list
         self.adj = {}
 
     def add_vertex(self, vertex):
-        # Add a vertex to the graph
         if vertex not in self.adj:
             self.adj[vertex] = []
 
     def add_edge(self, vertex1, vertex2):
         val = random.choice([-1,1])
-        # Add an edge to the graph (directed graph)
         if vertex1 in self.adj:
             self.adj[vertex1].append((vertex2, val ))
         else:
             self.adj[vertex1] = [(vertex2, val)]
 
     def remove_vertex(self, vertex):
-        # Remove a vertex from the graph
         if vertex in self.adj:
             del self.adj[vertex]
         for vertices in [a[1] for a in self.adj.values()]:
@@ -28,67 +25,29 @@ class Graph:
                 vertices.remove(vertex)
 
     def remove_edge(self, vertex1, vertex2):
-        # Remove an edge from the graph
         if vertex1 in self.adj and vertex2 in self.adj[vertex1]:
             self.adj[vertex1].remove(vertex2)
 
     def get_vertices(self):
-        # Return all vertices in the graph
         return list(self.adj.keys())
 
     def get_edges(self):
-        # Return all edges in the graph
         edges = []
         for vertex, neighbors in self.adj.items():
             for neighbor in neighbors:
                 edges.append((vertex, neighbor))
         return edges
 
-    def __str__(self):
-        # String representation of the graph
-        return str(self.adj)
-
-class Node:
-    def __init__(self, room, ages):
-        self.room = room
-        self.ages = ages
-        self.next = None
-
-    def __str__(self) -> str:
-        return f"{self.room}{"".join(self.ages)}"
-
-class LinkedList:
-    def __init__(self):
-        self.head = None
-
-    def append(self, room, ages):
-        new_node = Node(room, ages)
-        if self.head is None:
-            self.head = new_node
-            return
-        last_node = self.head
-        while last_node.next:
-            last_node = last_node.next
-        last_node.next = new_node
-
-
-    def delete_with_value(self, room, ages):
-        if self.head is None:
-            return
-        if self.head.room == room and self.head.ages == ages:
-            self.head = self.head.next
-            return
-        current_node = self.head
-        while current_node.next and current_node.next.room != room and current_node.next.ages != ages:
-            current_node = current_node.next
-        if current_node.next:
-            current_node.next = current_node.next.next
-
-    def print_list(self):
-        current_node = self.head
-        while current_node:
-            print(str(current_node), end=" -> " if current_node.next else "")
-            current_node = current_node.next
+    def tuple_to_str(self, tu):
+        return "".join([str(k) for k in tu])
+    
+    def print_graph(self)->None:
+        for k, v in self.adj.items():
+            code = self.tuple_to_str(k)
+            for r in v:
+                row_code = self.tuple_to_str(r[0])
+                print(code +  " -> " + str((row_code, r[1])))
+        print()
 
       
 def make_map_graph() -> Graph:
@@ -120,12 +79,40 @@ def make_map_graph() -> Graph:
 
     return graph
 
-def make_path(map_graph:Graph) -> LinkedList:
-    path = LinkedList()
-    
-        
+def make_path(map:Graph) -> Graph:
+    path = Graph()
+
+    visited = set()
+    stack = ["A"]
+    while stack:
+        vertex = stack.pop()
+        if vertex not in visited:
+            visited.add(vertex)
+            path.add_vertex((vertex, 0, vertex, 0, vertex, 0))
+            for neighbor in reversed(map.adj.get(vertex, [])):
+                if neighbor and neighbor not in visited:
+                    stack.append(neighbor)
+                    
+                    print(neighbor)
+                    from_room, t_age, k_age, w_age = neighbor[0], neighbor[1], neighbor[3], neighbor[5]
+                    for to_room, age_change in map.adj[from_room]:
+                        char_ages = [0, 0, 0]
+                        if 0 < t_age + age_change < 4:
+                            char_ages[0] = t_age + age_change
+                        if 0 < k_age + age_change < 4:
+                            char_ages[1] = k_age + age_change
+                        if 0 < w_age + age_change < 4:
+                            char_ages[2] = w_age + age_change
+                        if 1 in char_ages or 2 in char_ages or 3 in char_ages:
+                            new_v = tuple(sum(([to_room, age] for age in char_ages), []))
+                            path.add_vertex(neighbor)
+                            path.add_vertex(new_v)
+                            path.add_edge(neighbor, new_v)
+           
+
     return path
 
 map = make_map_graph()
-_2d = make_path(map)
-
+map.print_graph()
+path = make_path(map)
+path.print_graph()
