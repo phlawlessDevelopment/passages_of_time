@@ -1,8 +1,8 @@
 from collections import deque, defaultdict
 import random
 import networkx as nx
-import matplotlib.pyplot as plt
-
+from numpy import append
+import plotly.graph_objects as go
 # Function to create the NetworkX graph from the custom Graph class
 class Graph:
     def __init__(self):
@@ -77,7 +77,10 @@ class Graph:
 def make_map_graph(dimensions = (2,2)) -> Graph:
     graph = Graph()
     grid = []
-    letters = [chr(i) for i in range(ord('A'), ord('Z'))]
+    letters_ = [chr(i) for i in range(ord('A'), ord('Z'))]
+    letters = []
+    for i in range(1, 4):
+        letters += [l*i for l in letters_]
     i = 0
     letter_count = 1    
     for x in range(dimensions[0]):
@@ -122,8 +125,14 @@ def create_game_state_graph_for_first_character(map, initial_state):
     while queue:
         current_state = queue.popleft()
         
-        current_room = current_state[0]
-        current_age = int(current_state[1])
+        current_room = ""
+        i = 0
+        for c in current_state:
+                if c.isdigit(): 
+                    break
+                current_room += c
+                i += 1
+        current_age = int(current_state[i])
         
         for neighbor, weight in map.adj[current_room]:
             new_age = current_age + weight
@@ -148,17 +157,64 @@ def create_networkx_graph(game_state_graph):
         G.add_edge(edge[0], edge[1][0])
     return G
 
-map = make_map_graph((2,2))
+
+map = make_map_graph((4,2))
 map.print_graph()
 game_state_graph = create_game_state_graph_for_first_character(map, "A1A2A3")
 game_state_graph.print_graph()
 
-
-
-# Create the NetworkX graph
 G = create_networkx_graph(game_state_graph)
-plt.figure(figsize=(12, 8))
-pos = nx.spring_layout(G)
-nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue", font_size=10, font_weight="bold", arrows=True)
-plt.title("Game State Graph")
-plt.show()
+
+pos = nx.spring_layout(G, dim=3)
+
+edge_trace = go.Scatter3d(
+    x=[],
+    y=[],
+    z=[],
+    line=dict(width=2, color='#888'),
+    hoverinfo='none',
+    mode='lines')
+
+for edge in G.edges():
+    x0, y0, z0 = pos[edge[0]]
+    x1, y1, z1 = pos[edge[1]]
+    edge_trace['x'] += (x0, x1, None)
+    edge_trace['y'] += (y0, y1, None)
+    edge_trace['z'] += (z0, z1, None)
+
+node_trace = go.Scatter3d(
+    x=[],
+    y=[],
+    z=[],
+    text=[],
+    mode='markers+text',
+    textposition='top center',
+    hoverinfo='text',
+    marker=dict(
+        showscale=False,
+        color=[],
+        size=10,
+        line_width=2))
+
+for node in G.nodes():
+    x, y, z = pos[node]
+    node_trace['x'] += (x,)
+    node_trace['y'] += (y,)
+    node_trace['z'] += (z,)
+    node_trace['text'] += (node,)
+    node_trace['marker']['color'] += ('skyblue',)
+
+fig = go.Figure(data=[edge_trace, node_trace],
+                layout=go.Layout(
+                    title='3D Network Graph',
+                    showlegend=False,
+                    hovermode='closest',
+                    margin=dict(b=0, l=0, r=0, t=0),
+                    scene=dict(
+                        xaxis=dict(showbackground=False),
+                        yaxis=dict(showbackground=False),
+                        zaxis=dict(showbackground=False)),
+                    ))
+
+fig.show()
+
