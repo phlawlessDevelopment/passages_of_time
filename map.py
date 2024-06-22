@@ -1,9 +1,9 @@
-from collections import deque, defaultdict
+from collections import deque 
 import random
 import networkx as nx
-from numpy import append
 import plotly.graph_objects as go
-# Function to create the NetworkX graph from the custom Graph class
+import matplotlib.pyplot as plt
+
 class Graph:
     def __init__(self):
         self.adj = {}
@@ -111,11 +111,11 @@ def make_map_graph(dimensions = (2,2)) -> Graph:
 
 def generate_new_state(state, char_index, new_room, new_age):
     new_state = list(state)
-    new_state[char_index * 2] = new_room
-    new_state[char_index * 2 + 1] = str(new_age)
+    new_state[char_index-1] = new_room
+    new_state[char_index] = str(new_age)
     return ''.join(new_state)
 
-def create_game_state_graph_for_first_character(map, initial_state):
+def create_game_state_graph(map, character, initial_state):
     game_state_graph = Graph()
     queue = deque([initial_state])
     visited = set([initial_state])
@@ -126,19 +126,25 @@ def create_game_state_graph_for_first_character(map, initial_state):
         current_state = queue.popleft()
         
         current_room = ""
-        i = 0
+        char_index = 0
         for c in current_state:
-                if c.isdigit(): 
-                    break
-                current_room += c
-                i += 1
-        current_age = int(current_state[i])
+            if c.isdigit():
+                break
+            current_room += c
+            char_index += 1
+
+        if character == "K":
+            char_index += len(current_room) + 1
+        elif character == "W":
+            char_index += (len(current_room) + 1) * 2
+
+        current_age = int(current_state[char_index])
         
         for neighbor, weight in map.adj[current_room]:
             new_age = current_age + weight
             
             if 1 <= new_age <= 3:
-                new_state = generate_new_state(current_state, 0, neighbor, new_age)
+                new_state = generate_new_state(current_state, char_index, neighbor, new_age)
                 
                 if new_state not in visited:
                     visited.add(new_state)
@@ -158,63 +164,74 @@ def create_networkx_graph(game_state_graph):
     return G
 
 
-map = make_map_graph((4,2))
-map.print_graph()
-game_state_graph = create_game_state_graph_for_first_character(map, "A1A2A3")
-game_state_graph.print_graph()
+def create_plot(state_graph, character):
 
-G = create_networkx_graph(game_state_graph)
+    G = create_networkx_graph(state_graph)
+    pos = nx.kamada_kawai_layout(G, dim=3)
 
-pos = nx.spring_layout(G, dim=3)
+    edge_trace = go.Scatter3d(
+        x=[],
+        y=[],
+        z=[],
+        line=dict(width=2, color='#888'),
+        hoverinfo='none',
+        mode='lines')
+    
+    for edge in G.edges():
+        x0, y0, z0 = pos[edge[0]]
+        x1, y1, z1 = pos[edge[1]]
+        edge_trace['x'] += (x0, x1, None)
+        edge_trace['y'] += (y0, y1, None)
+        edge_trace['z'] += (z0, z1, None)
+    
+    node_trace = go.Scatter3d(
+        x=[],
+        y=[],
+        z=[],
+        text=[],
+        mode='markers+text',
+        textposition='top center',
+        hoverinfo='text',
+        marker=dict(
+            showscale=False,
+            color=[],
+            size=10,
+            line_width=2))
+    
+    for node in G.nodes():
+        x, y, z = pos[node]
+        node_trace['x'] += (x,)
+        node_trace['y'] += (y,)
+        node_trace['z'] += (z,)
+        node_trace['text'] += (node,)
+        node_trace['marker']['color'] += ('skyblue',)
 
-edge_trace = go.Scatter3d(
-    x=[],
-    y=[],
-    z=[],
-    line=dict(width=2, color='#888'),
-    hoverinfo='none',
-    mode='lines')
+    title = character + " path" 
+    return go.Figure(data=[edge_trace, node_trace],
+                    layout=go.Layout(
+                        title=title,
+                        showlegend=False,
+                        hovermode='closest',
+                        margin=dict(b=0, l=0, r=0, t=0),
+                        scene=dict(
+                            xaxis=dict(showbackground=False),
+                            yaxis=dict(showbackground=False),
+                            zaxis=dict(showbackground=False)),
+                        ))
 
-for edge in G.edges():
-    x0, y0, z0 = pos[edge[0]]
-    x1, y1, z1 = pos[edge[1]]
-    edge_trace['x'] += (x0, x1, None)
-    edge_trace['y'] += (y0, y1, None)
-    edge_trace['z'] += (z0, z1, None)
+map = make_map_graph((6,2))
+#map.print_graph()
+thief_state_graph = create_game_state_graph(map, "T", "A1A2A3")
+knight_state_graph = create_game_state_graph(map, "K", "A1A2A3")
+wizard_state_graph = create_game_state_graph(map, "W", "A1A2A3")
+#print(len(game_state_graph.get_edges()))
+#game_state_graph.print_graph()
+thief_plot = create_plot(thief_state_graph, "Thief")
+knight_plot = create_plot(knight_state_graph, "Knight")
+wizard_plot = create_plot(wizard_state_graph, "Wizard")
 
-node_trace = go.Scatter3d(
-    x=[],
-    y=[],
-    z=[],
-    text=[],
-    mode='markers+text',
-    textposition='top center',
-    hoverinfo='text',
-    marker=dict(
-        showscale=False,
-        color=[],
-        size=10,
-        line_width=2))
+thief_plot.show()
+knight_plot.show()
+wizard_plot.show()
 
-for node in G.nodes():
-    x, y, z = pos[node]
-    node_trace['x'] += (x,)
-    node_trace['y'] += (y,)
-    node_trace['z'] += (z,)
-    node_trace['text'] += (node,)
-    node_trace['marker']['color'] += ('skyblue',)
-
-fig = go.Figure(data=[edge_trace, node_trace],
-                layout=go.Layout(
-                    title='3D Network Graph',
-                    showlegend=False,
-                    hovermode='closest',
-                    margin=dict(b=0, l=0, r=0, t=0),
-                    scene=dict(
-                        xaxis=dict(showbackground=False),
-                        yaxis=dict(showbackground=False),
-                        zaxis=dict(showbackground=False)),
-                    ))
-
-fig.show()
 
