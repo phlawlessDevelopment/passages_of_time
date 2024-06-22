@@ -3,6 +3,7 @@ import random
 import networkx as nx
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import  re
 
 class Graph:
     def __init__(self):
@@ -124,20 +125,20 @@ def create_game_state_graph(map, character, initial_state):
     
     while queue:
         current_state = queue.popleft()
-        
+    
+        thief, knight, wizard = re.findall(r'([A-Za-z]+[1-3])', current_state)
         current_room = ""
-        char_index = 0
-        for c in current_state:
-            if c.isdigit():
-                break
-            current_room += c
-            char_index += 1
+        char_index = 1
 
+        if character == "T":
+            current_room = thief[:-1]
         if character == "K":
+            current_room = knight[:-1]
             char_index += len(current_room) + 1
-        elif character == "W":
+        if character == "W":
+            current_room = wizard[:-1]
             char_index += (len(current_room) + 1) * 2
-
+        
         current_age = int(current_state[char_index])
         
         for neighbor, weight in map.adj[current_room]:
@@ -164,17 +165,15 @@ def create_networkx_graph(game_state_graph):
     return G
 
 
-def create_plot(state_graph, character):
+def create_plot(state_graph):
 
     G = create_networkx_graph(state_graph)
-    # Define the dimensions of the 3D lattice grid
-    lattice_size = int(len(G.nodes)**(1/3)) + 1  # Adjust size based on the number of nodes
+    lattice_size = int(len(G.nodes)**(1/3)) + 1
 
     initial_positions = {}
     node_list = list(G.nodes)
     node_index = 0
     
-    # Assign initial positions in a 3D lattice grid
     for x in range(lattice_size):
         for y in range(lattice_size):
             for z in range(lattice_size):
@@ -190,7 +189,7 @@ def create_plot(state_graph, character):
 
     #pos = nx.fruchterman_reingold_layout(G, dim=3)
     #pos = nx.spring_layout(G, pos=initial_positions, dim=3)
-    pos = nx.kamada_kawai_layout(G, pos=initial_positions,  dim=3)
+    pos = nx.kamada_kawai_layout(G, pos=initial_positions, dim=3)
 
     edge_trace = go.Scatter3d(
         x=[],
@@ -229,10 +228,9 @@ def create_plot(state_graph, character):
         node_trace['text'] += (node,)
         node_trace['marker']['color'] += ('skyblue',)
 
-    title = character + " path" 
     return go.Figure(data=[edge_trace, node_trace],
                     layout=go.Layout(
-                        title=title,
+                        title="",
                         showlegend=False,
                         hovermode='closest',
                         margin=dict(b=0, l=0, r=0, t=0),
@@ -242,17 +240,19 @@ def create_plot(state_graph, character):
                             zaxis=dict(showbackground=False)),
                         ))
 
-map = make_map_graph((6,2))
-#map.print_graph()
+map = make_map_graph((4,2))
+
 thief_state_graph = create_game_state_graph(map, "T", "A1A2A3")
 knight_state_graph = create_game_state_graph(map, "K", "A1A2A3")
 wizard_state_graph = create_game_state_graph(map, "W", "A1A2A3")
-#print(len(game_state_graph.get_edges()))
-#game_state_graph.print_graph()
-thief_plot = create_plot(thief_state_graph, "Thief")
-knight_plot = create_plot(knight_state_graph, "Knight")
-wizard_plot = create_plot(wizard_state_graph, "Wizard")
 
+map_plot = create_plot(map)
+thief_plot = create_plot(thief_state_graph)
+knight_plot = create_plot(knight_state_graph)
+wizard_plot = create_plot(wizard_state_graph)
+
+
+map_plot.show()
 thief_plot.show()
 knight_plot.show()
 wizard_plot.show()
