@@ -167,7 +167,30 @@ def create_networkx_graph(game_state_graph):
 def create_plot(state_graph, character):
 
     G = create_networkx_graph(state_graph)
-    pos = nx.kamada_kawai_layout(G, dim=3)
+    # Define the dimensions of the 3D lattice grid
+    lattice_size = int(len(G.nodes)**(1/3)) + 1  # Adjust size based on the number of nodes
+
+    initial_positions = {}
+    node_list = list(G.nodes)
+    node_index = 0
+    
+    # Assign initial positions in a 3D lattice grid
+    for x in range(lattice_size):
+        for y in range(lattice_size):
+            for z in range(lattice_size):
+                if node_index < len(node_list):
+                    initial_positions[node_list[node_index]] = (x, y, z)
+                    node_index += 1
+                else:
+                    break
+            if node_index >= len(node_list):
+                break
+        if node_index >= len(node_list):
+            break
+
+    #pos = nx.fruchterman_reingold_layout(G, dim=3)
+    #pos = nx.spring_layout(G, pos=initial_positions, dim=3)
+    pos = nx.kamada_kawai_layout(G, pos=initial_positions,  dim=3)
 
     edge_trace = go.Scatter3d(
         x=[],
