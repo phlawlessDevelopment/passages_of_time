@@ -56,17 +56,15 @@ class Graph:
     
     def print_path(self):
         def dfs(vertex, path, visited):
-                    
             visited.add(vertex)
             path.append(vertex)
             
-            if vertex not in self.adj or len(self.adj[vertex]) == 0:
-                # Print the full path
-                print(f"{path[0]} -> {path[1][1]} -> {path[1][0]}")
-            else:
+            if not (vertex not in self.adj or len(self.adj[vertex]) == 0):
+                print("".join(vertex) + " -> [" + ",".join([str(x) + ' (' + str(y) + ')' for x, y in self.adj[vertex]]) + "]")
                 for neighbor in self.adj[vertex]:
                     dfs(neighbor, path.copy(), visited.copy())
             
+
         for vertex in self.adj:
             dfs(vertex, [], set())
 
@@ -191,9 +189,8 @@ def create_plot(state_graph):
         x=[],
         y=[],
         z=[],
-        line=dict(width=2, color='#888'),
-        hoverinfo='none',
-        mode='lines')
+        line=dict(width=2, color='#888'), hoverinfo='none',
+        mode='lines+markers')
     
     for edge in G.edges():
         x0, y0, z0 = pos[edge[0]]
