@@ -56,17 +56,13 @@ class Graph:
     
     def print_path(self):
         def dfs(vertex, path, visited):
-            if vertex in visited:
-                # Detect a loop and print with fancy ASCII
-                print(" -> ".join((path[0], path[1][0])) + " -> " + vertex + " (loop detected)")
-                return
-            
+                    
             visited.add(vertex)
             path.append(vertex)
             
             if vertex not in self.adj or len(self.adj[vertex]) == 0:
                 # Print the full path
-                print(" -> ".join((path[0], path[1][0])))
+                print(f"{path[0]} -> {path[1][1]} -> {path[1][0]}")
             else:
                 for neighbor in self.adj[vertex]:
                     dfs(neighbor, path.copy(), visited.copy())
@@ -240,19 +236,20 @@ def create_plot(state_graph):
                             zaxis=dict(showbackground=False)),
                         ))
 
-map = make_map_graph((4,2))
+map_graph = make_map_graph((4,2))
 
-thief_state_graph = create_game_state_graph(map, "T", "A1A2A3")
-knight_state_graph = create_game_state_graph(map, "K", "A1A2A3")
-wizard_state_graph = create_game_state_graph(map, "W", "A1A2A3")
+thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
+knight_state_graph = create_game_state_graph(map_graph, "K", "A1A2A3")
+wizard_state_graph = create_game_state_graph(map_graph, "W", "A1A2A3")
 
-map_plot = create_plot(map)
+#map_plot = create_plot(map)
 thief_plot = create_plot(thief_state_graph)
 knight_plot = create_plot(knight_state_graph)
 wizard_plot = create_plot(wizard_state_graph)
 
 
-map_plot.show()
+map_graph.print_path()
+#map_plot.show()
 thief_plot.show()
 knight_plot.show()
 wizard_plot.show()
