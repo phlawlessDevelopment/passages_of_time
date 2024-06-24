@@ -63,7 +63,6 @@ class Graph:
         print()
     
     def print_path(self):
-        print(self.adj)
         def dfs(vertex, path, visited):
             visited.add(vertex)
             path.append(vertex)
@@ -250,7 +249,17 @@ def create_plot(state_graph):
                             zaxis=dict(showbackground=False)),
                         ))
 
-map_graph = make_map_graph(json.loads('{"A": [["C", 1], ["B", 1]], "B": [["D", 1], ["A", -1]], "C": [["A", -1], ["D", 1]], "D": [["B", -1], ["C", -1]]}'), (2,2))
+#map_graph = make_map_graph(json.loads('{"A": [["C", 1], ["B", 1]], "B": [["D", 1], ["A", -1]], "C": [["A", -1], ["D", 1]], "D": [["B", -1], ["C", -1]]}'), (2,2))
+map_graph = make_map_graph(json.loads('''
+{
+    "A": [["C", 1], ["B", 1]],
+    "B": [["D", 1], ["A", -1]],
+    "C": [["A", -1], ["D", 1], ["E", 1]],
+    "D": [["B", -1], ["C", -1], ["F", 1]],
+    "E":[["C", -1],["F",-1]],
+    "F":[["E",1],["D",-1]]
+}
+    '''), (2,2))
 
 thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
 knight_state_graph = create_game_state_graph(map_graph, "K", "A1A2A3")
