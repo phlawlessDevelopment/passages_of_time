@@ -60,7 +60,7 @@ class Graph:
             path.append(vertex)
             
             if not (vertex not in self.adj or len(self.adj[vertex]) == 0):
-                print("".join(vertex) + " -> [" + ",".join([str(x) + ' (' + str(y) + ')' for x, y in self.adj[vertex]]) + "]")
+                print("".join(vertex) + " -> [" + ", ".join([str(x) + '(' + str(y) + ')' for x, y in self.adj[vertex]]) + "]")
                 for neighbor in self.adj[vertex]:
                     dfs(neighbor, path.copy(), visited.copy())
             
@@ -246,6 +246,10 @@ wizard_plot = create_plot(wizard_state_graph)
 
 
 map_graph.print_path()
+
+print(" ")
+input("spress enter")
+
 #map_plot.show()
 thief_plot.show()
 knight_plot.show()
