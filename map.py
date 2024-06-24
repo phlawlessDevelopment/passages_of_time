@@ -179,26 +179,24 @@ def create_networkx_graph(game_state_graph):
 def create_plot(state_graph):
 
     G = create_networkx_graph(state_graph)
-    lattice_size = int(len(G.nodes)**(1/3)) + 1
+    grid_size = int(len(G.nodes)**(1/2)) + 1
 
     initial_positions = {}
     node_list = list(G.nodes)
     node_index = 0
     
-    for x in range(lattice_size):
-        for y in range(lattice_size):
+    for x in range(grid_size):
+        for y in range(grid_size):
             if node_index < len(node_list):
                 initial_positions[node_list[node_index]] = (x, y)
                 node_index += 1
             else:
                 break
-            if node_index >= len(node_list):
-                break
         if node_index >= len(node_list):
             break
 
-    #pos = nx.fruchterman_reingold_layout(G,pos=initial_positions, dim=2)
-    pos = nx.spring_layout(G,pos=initial_positions, dim=2)
+    pos = nx.fruchterman_reingold_layout(G,pos=initial_positions, dim=2)
+    #pos = nx.spring_layout(G,pos=initial_positions, dim=2)
     #pos = nx.kamada_kawai_layout(G,pos=initial_positions,dim=2)
 
     edge_trace = go.Scatter(
@@ -245,38 +243,34 @@ def create_plot(state_graph):
                             ),
                         ))
 
-print(f"used virtual memmory percentage : {psutil.virtual_memory().percent}")
-#map_graph = make_map_graph(json.loads('{"A": [["C", 1], ["B", 1]], "B": [["D", 1], ["A", -1]], "C": [["A", -1], ["D", 1]], "D": [["B", -1], ["C", -1]]}'), (2,2))
-map_graph = make_map_graph(json.loads('''
-{
-    "A": [["C", 1], ["B", 1]],
-    "B": [["D", 1], ["A", -1]],
-    "C": [["A", -1], ["D", 1], ["E", 1]],
-    "D": [["B", -1], ["C", -1], ["F", 1]],
-    "E":[["C", -1],["F",-1]],
-    "F":[["E",1],["D",-1]]
-}
-    '''), (2,2))
+
+def show_graphs(map_graph):
+    thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
+    knight_state_graph = create_game_state_graph(map_graph, "K", "A1A2A3")
+    wizard_state_graph = create_game_state_graph(map_graph, "W", "A1A2A3")
+    
+    #map_plot = create_plot(map)
+    thief_plot = create_plot(thief_state_graph)
+    knight_plot = create_plot(knight_state_graph)
+    wizard_plot = create_plot(wizard_state_graph)
 
 
-thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
-knight_state_graph = create_game_state_graph(map_graph, "K", "A1A2A3")
-wizard_state_graph = create_game_state_graph(map_graph, "W", "A1A2A3")
+    print("-----------------------------")
+    map_graph.print_path()
+    print("-----------------------------")
+    
+    #map_plot.show()
+    thief_plot.show()
+    knight_plot.show()
+    wizard_plot.show()
+    print(f"used virtual memmory percentage : {psutil.virtual_memory().percent}")
 
-#map_plot = create_plot(map)
-thief_plot = create_plot(thief_state_graph)
-knight_plot = create_plot(knight_state_graph)
-wizard_plot = create_plot(wizard_state_graph)
 
 
-print("-----------------------------")
-map_graph.print_path()
-print("-----------------------------")
-
-#map_plot.show()
-thief_plot.show()
-knight_plot.show()
-wizard_plot.show()
 print(f"used virtual memmory percentage : {psutil.virtual_memory().percent}")
 
+for file in ["2x2.json","2x3.json"]:
+    with open(file) as f:
+        map_graph = make_map_graph(json.load(f))
+        show_graphs(map_graph)
 
