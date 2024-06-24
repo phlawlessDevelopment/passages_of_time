@@ -1,3 +1,4 @@
+import psutil
 from collections import deque 
 import random
 import networkx as nx
@@ -186,39 +187,35 @@ def create_plot(state_graph):
     
     for x in range(lattice_size):
         for y in range(lattice_size):
-            for z in range(lattice_size):
-                if node_index < len(node_list):
-                    initial_positions[node_list[node_index]] = (x, y, z)
-                    node_index += 1
-                else:
-                    break
+            if node_index < len(node_list):
+                initial_positions[node_list[node_index]] = (x, y)
+                node_index += 1
+            else:
+                break
             if node_index >= len(node_list):
                 break
         if node_index >= len(node_list):
             break
 
-    #pos = nx.fruchterman_reingold_layout(G, dim=3)
-    #pos = nx.spring_layout(G, pos=initial_positions, dim=3)
-    pos = nx.kamada_kawai_layout(G, pos=initial_positions, dim=3)
+    #pos = nx.fruchterman_reingold_layout(G,pos=initial_positions, dim=2)
+    pos = nx.spring_layout(G,pos=initial_positions, dim=2)
+    #pos = nx.kamada_kawai_layout(G,pos=initial_positions,dim=2)
 
-    edge_trace = go.Scatter3d(
+    edge_trace = go.Scatter(
         x=[],
         y=[],
-        z=[],
         line=dict(width=2, color='#888'), hoverinfo='none',
         mode='lines+markers')
     
     for edge in G.edges():
-        x0, y0, z0 = pos[edge[0]]
-        x1, y1, z1 = pos[edge[1]]
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
         edge_trace['x'] += (x0, x1, None)
         edge_trace['y'] += (y0, y1, None)
-        edge_trace['z'] += (z0, z1, None)
     
-    node_trace = go.Scatter3d(
+    node_trace = go.Scatter(
         x=[],
         y=[],
-        z=[],
         text=[],
         mode='markers+text',
         textposition='top center',
@@ -230,10 +227,9 @@ def create_plot(state_graph):
             line_width=2))
     
     for node in G.nodes():
-        x, y, z = pos[node]
+        x, y  = pos[node]
         node_trace['x'] += (x,)
         node_trace['y'] += (y,)
-        node_trace['z'] += (z,)
         node_trace['text'] += (node,)
         node_trace['marker']['color'] += ('skyblue',)
 
@@ -246,9 +242,10 @@ def create_plot(state_graph):
                         scene=dict(
                             xaxis=dict(showbackground=False),
                             yaxis=dict(showbackground=False),
-                            zaxis=dict(showbackground=False)),
+                            ),
                         ))
 
+print(f"used virtual memmory percentage : {psutil.virtual_memory().percent}")
 #map_graph = make_map_graph(json.loads('{"A": [["C", 1], ["B", 1]], "B": [["D", 1], ["A", -1]], "C": [["A", -1], ["D", 1]], "D": [["B", -1], ["C", -1]]}'), (2,2))
 map_graph = make_map_graph(json.loads('''
 {
@@ -261,6 +258,7 @@ map_graph = make_map_graph(json.loads('''
 }
     '''), (2,2))
 
+
 thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
 knight_state_graph = create_game_state_graph(map_graph, "K", "A1A2A3")
 wizard_state_graph = create_game_state_graph(map_graph, "W", "A1A2A3")
@@ -271,13 +269,14 @@ knight_plot = create_plot(knight_state_graph)
 wizard_plot = create_plot(wizard_state_graph)
 
 
+print("-----------------------------")
 map_graph.print_path()
-
-# connections not mirrorred in map output
+print("-----------------------------")
 
 #map_plot.show()
 thief_plot.show()
 knight_plot.show()
 wizard_plot.show()
+print(f"used virtual memmory percentage : {psutil.virtual_memory().percent}")
 
 
