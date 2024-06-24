@@ -2,7 +2,7 @@ from collections import deque
 import random
 import networkx as nx
 import plotly.graph_objects as go
-import matplotlib.pyplot as plt
+import json
 import  re
 
 class Graph:
@@ -13,12 +13,20 @@ class Graph:
         if vertex not in self.adj:
             self.adj[vertex] = []
 
-    def add_edge(self, vertex1, vertex2):
-        val = random.choice([-1,1])
+    def add_edge(self, vertex1, vertex2, val=0):
+        if val == 0:
+            val = random.choice([-1,1])
         if vertex1 in self.adj:
-            self.adj[vertex1].append((vertex2, val ))
+            if not ((vertex2, val) in self.adj[vertex1]):
+                self.adj[vertex1].append((vertex2, val))
         else:
             self.adj[vertex1] = [(vertex2, val)]
+        if vertex2 in self.adj:
+            if not ((vertex1, val *-1) in self.adj[vertex2]):
+                self.adj[vertex2].append((vertex1, val *-1))
+        else:
+            self.adj[vertex2] = [(vertex1, val * -1)]
+
 
     def remove_vertex(self, vertex):
         if vertex in self.adj:
@@ -55,6 +63,7 @@ class Graph:
         print()
     
     def print_path(self):
+        print(self.adj)
         def dfs(vertex, path, visited):
             visited.add(vertex)
             path.append(vertex)
@@ -69,8 +78,16 @@ class Graph:
             dfs(vertex, [], set())
 
       
-def make_map_graph(dimensions = (2,2)) -> Graph:
+def make_map_graph(input_graph = None, dimensions = (2,2)) -> Graph:
     graph = Graph()
+
+    if input_graph:
+        for k,v in input_graph.items():
+            graph.add_vertex(k)
+            for e in v:
+                graph.add_edge(k,e[0], e[1])
+        return graph
+
     grid = []
     letters_ = [chr(i) for i in range(ord('A'), ord('Z'))]
     letters = []
@@ -233,7 +250,7 @@ def create_plot(state_graph):
                             zaxis=dict(showbackground=False)),
                         ))
 
-map_graph = make_map_graph((4,2))
+map_graph = make_map_graph(json.loads('{"A": [["C", 1], ["B", 1]], "B": [["D", 1], ["A", -1]], "C": [["A", -1], ["D", 1]], "D": [["B", -1], ["C", -1]]}'), (2,2))
 
 thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
 knight_state_graph = create_game_state_graph(map_graph, "K", "A1A2A3")
@@ -247,8 +264,7 @@ wizard_plot = create_plot(wizard_state_graph)
 
 map_graph.print_path()
 
-print(" ")
-input("spress enter")
+# connections not mirrorred in map output
 
 #map_plot.show()
 thief_plot.show()
