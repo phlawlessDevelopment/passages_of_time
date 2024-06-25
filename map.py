@@ -1,6 +1,5 @@
 import psutil
 from collections import deque 
-import random
 import networkx as nx
 import plotly.graph_objects as go
 import json
@@ -10,24 +9,53 @@ class Graph:
     def __init__(self):
         self.adj = {}
 
+    def duplicate(self):
+        copy = Graph()
+        copy.adj = self.adj.copy()
+        return copy
+
     def add_vertex(self, vertex):
         if vertex not in self.adj:
-            self.adj[vertex] = []
+            self.adj[vertex] = set()
 
     def add_edge(self, vertex1, vertex2, val=0):
-        if val == 0:
-            val = random.choice([-1,1])
-        if vertex1 in self.adj:
-            if not ((vertex2, val) in self.adj[vertex1]):
-                self.adj[vertex1].append((vertex2, val))
-        else:
-            self.adj[vertex1] = [(vertex2, val)]
-        if vertex2 in self.adj:
-            if not ((vertex1, val *-1) in self.adj[vertex2]):
-                self.adj[vertex2].append((vertex1, val *-1))
-        else:
-            self.adj[vertex2] = [(vertex1, val * -1)]
+            if vertex1 in self.adj:
+                 if not ((vertex2, val) in self.adj[vertex1]):
+                     self.adj[vertex1].add((vertex2, val))
+            else:
+                 self.adj[vertex1] = set([(vertex2, val)])
+            if vertex2 in self.adj:
+                 if not ((vertex1, val *-1) in self.adj[vertex2]):
+                     self.adj[vertex2].add((vertex1, val *-1))
+            else:
+                 self.adj[vertex2] = set([(vertex1, val * -1)])
 
+    def transform_to_knight_graph(self, thief_vertex):
+        for v in self.get_vertices():
+            new_vertex = thief_vertex[:2] + v[2:4] + thief_vertex[4:]
+            self.adj = self.update_vertex(v, new_vertex)
+    
+    def update_vertex(self, old_vertex, new_vertex):
+        updated_graph = {}
+        for key, edges in self.adj.items():
+            if key == old_vertex:
+                new_key = new_vertex
+            else:
+                new_key = key
+
+            updated_edges = set()
+            for edge in edges:
+                edge_vertex, weight = edge
+                if edge_vertex == old_vertex:
+                    new_edge_vertex = new_vertex
+                else:
+                    new_edge_vertex = edge_vertex
+
+                updated_edges.add((new_edge_vertex, weight))
+
+            updated_graph[new_key] = updated_edges
+
+        return updated_graph
 
     def remove_vertex(self, vertex):
         if vertex in self.adj:
@@ -49,6 +77,13 @@ class Graph:
             for neighbor in neighbors:
                 edges.append((vertex, neighbor))
         return edges
+
+    def combine_graphs(self, other):
+        for v, e in other.adj.items(): 
+            if v in self.adj:
+                self.adj[v].union(e)
+            else:
+                self.adj[v] = e
 
     def tuple_to_str(self, tu):
         return "".join([str(k) for k in tu])
@@ -78,47 +113,14 @@ class Graph:
             dfs(vertex, [], set())
 
       
-def make_map_graph(input_graph = None, dimensions = (2,2)) -> Graph:
+def make_map_graph(input_dict) -> Graph:
     graph = Graph()
-
-    if input_graph:
-        for k,v in input_graph.items():
-            graph.add_vertex(k)
-            for e in v:
-                graph.add_edge(k,e[0], e[1])
-        return graph
-
-    grid = []
-    letters_ = [chr(i) for i in range(ord('A'), ord('Z'))]
-    letters = []
-    for i in range(1, 4):
-        letters += [l*i for l in letters_]
-    i = 0
-    letter_count = 1    
-    for x in range(dimensions[0]):
-        grid.append([])
-        for y in range(dimensions[1]):
-            l = (letters[i] * letter_count)
-            grid[x].append(l)
-            graph.add_vertex(l)
-            i = (i + 1) % len(letters)
-            if i == 0:
-                letter_count +=1
-    
-    
-    for x in range(dimensions[0]):
-        for y in range(dimensions[1]):
-            room = grid[x][y]
-            if x > 0:
-                graph.add_edge(room,grid[x-1][y])
-            if x < dimensions[0] -1:
-                graph.add_edge(room, grid[x+1][y])
-            if y < dimensions[1]-1:
-                graph.add_edge(room, grid[x][y+1])
-            if y > 0:
-                graph.add_edge(room, grid[x][y-1])
-
+    for k,v in input_dict.items():
+        graph.add_vertex(k)
+        for e in v:
+            graph.add_edge(k,e[0], e[1])
     return graph
+
 
 
 def generate_new_state(state, char_index, new_room, new_age):
@@ -163,7 +165,7 @@ def create_game_state_graph(map, character, initial_state):
                     queue.append(new_state)
                     game_state_graph.add_vertex(new_state)
                 
-                game_state_graph.add_edge(current_state, new_state)
+                game_state_graph.add_edge(current_state, new_state, weight)
     
     return game_state_graph
 
@@ -195,7 +197,7 @@ def create_plot(state_graph):
         if node_index >= len(node_list):
             break
 
-    pos = nx.fruchterman_reingold_layout(G,pos=initial_positions, dim=2)
+    pos = nx.fruchterman_reingold_layout(G, pos=initial_positions, dim=2)
     #pos = nx.spring_layout(G,pos=initial_positions, dim=2)
     #pos = nx.kamada_kawai_layout(G,pos=initial_positions,dim=2)
 
@@ -243,27 +245,34 @@ def create_plot(state_graph):
                             ),
                         ))
 
-
+def combine_graphs(thief_graph, knight_graph, wizard_graph):
+    for vertex in thief_graph.get_vertices():
+        new_knight_graph = knight_graph.duplicate()
+        new_knight_graph.transform_to_knight_graph(vertex)
+        thief_graph.combine_graphs(new_knight_graph)
+        thief_graph.print_graph()
+        print("---")
+   
 def show_graphs(map_graph):
     thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
     knight_state_graph = create_game_state_graph(map_graph, "K", "A1A2A3")
     wizard_state_graph = create_game_state_graph(map_graph, "W", "A1A2A3")
     
+    combine_graphs(thief_state_graph, knight_state_graph, wizard_state_graph)
     #map_plot = create_plot(map)
     thief_plot = create_plot(thief_state_graph)
     knight_plot = create_plot(knight_state_graph)
     wizard_plot = create_plot(wizard_state_graph)
 
 
-    print("-----------------------------")
-    map_graph.print_path()
-    print("-----------------------------")
+    #print("-----------------------------")
+    #map_graph.print_path()
+    #print("-----------------------------")
     
     #map_plot.show()
     thief_plot.show()
     knight_plot.show()
     wizard_plot.show()
-    print(f"used virtual memmory percentage : {psutil.virtual_memory().percent}")
 
 
 
@@ -273,4 +282,6 @@ for file in ["2x2.json","2x3.json"]:
     with open(file) as f:
         map_graph = make_map_graph(json.load(f))
         show_graphs(map_graph)
+
+print(f"used virtual memmory percentage : {psutil.virtual_memory().percent}")
 
