@@ -243,8 +243,6 @@ def combine_graphs(thief_graph, knight_graph, wizard_graph):
         new_knight_graph = knight_graph.duplicate()
         new_knight_graph.transform_to_knight_graph(vertex)
         thief_graph.combine_graphs(new_knight_graph)
-        thief_graph.print_graph()
-        print("---")
    
 def show_graphs(map_graph):
     thief_state_graph = create_game_state_graph(map_graph, "T", "A1A2A3")
@@ -252,20 +250,14 @@ def show_graphs(map_graph):
     wizard_state_graph = create_game_state_graph(map_graph, "W", "A1A2A3")
     
     combine_graphs(thief_state_graph, knight_state_graph, wizard_state_graph)
-    #map_plot = create_plot(map)
     thief_plot = create_plot(thief_state_graph)
-    knight_plot = create_plot(knight_state_graph)
-    wizard_plot = create_plot(wizard_state_graph)
+    #knight_plot = create_plot(knight_state_graph)
+    #wizard_plot = create_plot(wizard_state_graph)
 
 
-    #print("-----------------------------")
-    #map_graph.print_path()
-    #print("-----------------------------")
-    
-    #map_plot.show()
     thief_plot.show()
-    knight_plot.show()
-    wizard_plot.show()
+    #knight_plot.show()
+    #wizard_plot.show()
 
 
 
