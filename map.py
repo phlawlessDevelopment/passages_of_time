@@ -33,30 +33,23 @@ class Graph:
     def transform_to_knight_graph(self, thief_vertex):
         for v in self.get_vertices():
             new_vertex = thief_vertex[:2] + v[2:4] + thief_vertex[4:]
-            self.adj = self.update_vertex(v, new_vertex)
+            self.update_vertex(v, new_vertex)
     
     def update_vertex(self, old_vertex, new_vertex):
-        updated_graph = {}
+        if old_vertex in self.adj:
+            self.add_vertex(new_vertex)
+            self.adj[new_vertex] = self.adj.pop(old_vertex)
+    
         for key, edges in self.adj.items():
-            if key == old_vertex:
-                new_key = new_vertex
-            else:
-                new_key = key
-
             updated_edges = set()
             for edge in edges:
                 edge_vertex, weight = edge
                 if edge_vertex == old_vertex:
-                    new_edge_vertex = new_vertex
+                    updated_edges.add((new_vertex, weight))
                 else:
-                    new_edge_vertex = edge_vertex
-
-                updated_edges.add((new_edge_vertex, weight))
-
-            updated_graph[new_key] = updated_edges
-
-        return updated_graph
-
+                    updated_edges.add(edge)
+            self.adj[key] = updated_edges
+    
     def remove_vertex(self, vertex):
         if vertex in self.adj:
             del self.adj[vertex]
@@ -81,7 +74,7 @@ class Graph:
     def combine_graphs(self, other):
         for v, e in other.adj.items(): 
             if v in self.adj:
-                self.adj[v].union(e)
+                self.adj [v] = self.adj[v].union(e)
             else:
                 self.adj[v] = e
 
