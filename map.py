@@ -18,17 +18,17 @@ class Graph:
         if vertex not in self.adj:
             self.adj[vertex] = set()
 
-    def add_edge(self, vertex1, vertex2, val=0):
+    def add_edge(self, vertex1, vertex2, val=0, char="T"):
             if vertex1 in self.adj:
                  if not ((vertex2, val) in self.adj[vertex1]):
-                     self.adj[vertex1].add((vertex2, val))
+                     self.adj[vertex1].add((vertex2, val, char))
             else:
-                 self.adj[vertex1] = set([(vertex2, val)])
+                 self.adj[vertex1] = set([(vertex2, val, char)])
             if vertex2 in self.adj:
                  if not ((vertex1, val *-1) in self.adj[vertex2]):
-                     self.adj[vertex2].add((vertex1, val *-1))
+                     self.adj[vertex2].add((vertex1, val *-1, char))
             else:
-                 self.adj[vertex2] = set([(vertex1, val * -1)])
+                 self.adj[vertex2] = set([(vertex1, val * -1, char)])
 
     def transform_to_knight_graph(self, thief_vertex):
         for v in self.get_vertices():
@@ -43,9 +43,9 @@ class Graph:
         for key, edges in self.adj.items():
             updated_edges = set()
             for edge in edges:
-                edge_vertex, weight = edge
+                edge_vertex, weight, char = edge
                 if edge_vertex == old_vertex:
-                    updated_edges.add((new_vertex, weight))
+                    updated_edges.add((new_vertex, weight, char))
                 else:
                     updated_edges.add(edge)
             self.adj[key] = updated_edges
@@ -147,7 +147,7 @@ def create_game_state_graph(map, character, initial_state):
         
         current_age = int(current_state[char_index])
         
-        for neighbor, weight in map.adj[current_room]:
+        for neighbor, weight, char in map.adj[current_room]:
             new_age = current_age + weight
             
             if 1 <= new_age <= 3:
@@ -158,7 +158,7 @@ def create_game_state_graph(map, character, initial_state):
                     queue.append(new_state)
                     game_state_graph.add_vertex(new_state)
                 
-                game_state_graph.add_edge(current_state, new_state, weight)
+                game_state_graph.add_edge(current_state, new_state, weight, character)
     
     return game_state_graph
 
@@ -172,44 +172,33 @@ def create_networkx_graph(game_state_graph):
 
 
 def create_plot(state_graph):
-
     G = create_networkx_graph(state_graph)
-    grid_size = int(len(G.nodes)**(1/2)) + 1
+    grid_size = int(len(G.nodes) ** (1/2)) + 1
 
     initial_positions = {}
     node_list = list(G.nodes)
     node_index = 0
-    
+    z_offset = 5
     for x in range(grid_size):
         for y in range(grid_size):
             if node_index < len(node_list):
-                initial_positions[node_list[node_index]] = (x, y)
+                initial_positions[node_list[node_index]] = (x, y, 0)
                 node_index += 1
             else:
                 break
         if node_index >= len(node_list):
             break
 
-    pos = nx.fruchterman_reingold_layout(G, pos=initial_positions, dim=2)
-    #pos = nx.spring_layout(G,pos=initial_positions, dim=2)
-    #pos = nx.kamada_kawai_layout(G,pos=initial_positions,dim=2)
+    pos = nx.fruchterman_reingold_layout(G, pos=initial_positions, dim=3)
 
-    edge_trace = go.Scatter(
-        x=[],
-        y=[],
-        line=dict(width=2, color='#888'), hoverinfo='none',
-        mode='lines+markers')
-    
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_trace['x'] += (x0, x1, None)
-        edge_trace['y'] += (y0, y1, None)
-    
-    node_trace = go.Scatter(
-        x=[],
-        y=[],
-        text=[],
+    edge_trace = go.Scatter3d(
+        x=[], y=[], z=[],
+        line=dict(width=2, color='#888'),
+        hoverinfo='none',
+        mode='lines+markers'
+    )
+    node_trace = go.Scatter3d(
+        x=[], y=[], z=[], text=[],
         mode='markers+text',
         textposition='top center',
         hoverinfo='text',
@@ -217,26 +206,56 @@ def create_plot(state_graph):
             showscale=False,
             color=[],
             size=10,
-            line_width=2))
+            line_width=2
+        )
+    )
     
-    for node in G.nodes():
-        x, y  = pos[node]
-        node_trace['x'] += (x,)
-        node_trace['y'] += (y,)
-        node_trace['text'] += (node,)
+    prev_x , prev_y = 0,0
+    for edge in G.edges():
+        edge_char = "T"
+        x0, y0, z0 = pos[edge[0]]
+        x1, y1, z1 = pos[edge[1]]
+
+        for e in state_graph.adj[edge[0]]:
+            if e[0] == edge[1]:
+                edge_char = e[2]
+        if edge_char == "K":
+            x0, y0, x1, y1 = prev_x, prev_y, prev_x, prev_y 
+            z0 = -z_offset
+            z1 = z_offset
+        
+        edge_trace['x'] += (x0, x1, None)
+        edge_trace['y'] += (y0, y1, None)
+        edge_trace['z'] += (z0, z1, None)
+
+        node_trace['x'] += (x0,)
+        node_trace['y'] += (y0,)
+        node_trace['z'] += (z0,)
+        node_trace['text'] += (edge[0],)
         node_trace['marker']['color'] += ('skyblue',)
 
+        node_trace['x'] += (x1,)
+        node_trace['y'] += (y1,)
+        node_trace['z'] += (z1,)
+        node_trace['text'] += (edge[1],)
+        node_trace['marker']['color'] += ('skyblue',)
+
+
+        prev_x, prev_y = x0, y0
+
+    
     return go.Figure(data=[edge_trace, node_trace],
-                    layout=go.Layout(
-                        title="",
-                        showlegend=False,
-                        hovermode='closest',
-                        margin=dict(b=0, l=0, r=0, t=0),
-                        scene=dict(
-                            xaxis=dict(showbackground=False),
-                            yaxis=dict(showbackground=False),
-                            ),
-                        ))
+                     layout=go.Layout(
+                         title="3D Network Graph",
+                         showlegend=False,
+                         hovermode='closest',
+                         margin=dict(b=0, l=0, r=0, t=0),
+                         scene=dict(
+                             xaxis=dict(showbackground=False),
+                             yaxis=dict(showbackground=False),
+                             zaxis=dict(showbackground=False)
+                         ),
+                     ))
 
 def combine_graphs(thief_graph, knight_graph, wizard_graph):
     for vertex in thief_graph.get_vertices():
